@@ -105,7 +105,7 @@ app.post("/api/analyze", upload.single("file"), async (req, res) => {
         "X-Title": "MedBuddy"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.1-8b-instruct:free",
+        model: "meta-llama/llama-3.2-3b-instruct:free",
         messages: [
           { role: "system", content: buildSystemPrompt(db, lang) },
           { role: "user", content: userContent }
