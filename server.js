@@ -8,7 +8,7 @@ const XLSX    = require("xlsx");
 
 const app     = express();
 const PORT    = process.env.PORT || 3000;
-const API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
@@ -33,18 +33,18 @@ function loadDB() {
   const get = (keyword) => wb.SheetNames.find(n => n.includes(keyword));
   const toRows = (name) => name ? XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "" }) : [];
 
-  const medicines  = toRows(get("Medicines")).filter(r => r["Generic Name"]);
-  const sideEffects= toRows(get("Side Effects")).filter(r => r["Drug Category"]);
-  const conditions = toRows(get("Conditions")).filter(r => r["Medical Term"]);
-  const glossary   = toRows(get("Medical Terms")).filter(r => r["Medical Jargon"]);
-  const timing     = toRows(get("Dosage")).filter(r => r["Code"]);
-  const diet       = toRows(get("Diet")).filter(r => r["Condition"]);
-  const labTests   = toRows(get("Lab")).filter(r => r["Test Name"]);
+  const medicines   = toRows(get("Medicines")).filter(r => r["Generic Name"]);
+  const sideEffects = toRows(get("Side Effects")).filter(r => r["Drug Category"]);
+  const conditions  = toRows(get("Conditions")).filter(r => r["Medical Term"]);
+  const glossary    = toRows(get("Medical Terms")).filter(r => r["Medical Jargon"]);
+  const timing      = toRows(get("Dosage")).filter(r => r["Code"]);
+  const diet        = toRows(get("Diet")).filter(r => r["Condition"]);
+  const labTests    = toRows(get("Lab")).filter(r => r["Test Name"]);
 
   return { medicines, sideEffects, conditions, glossary, timing, diet, labTests };
 }
 
-function buildSystemPrompt(db, lang) {
+function buildPrompt(db, lang, docText) {
   const meds = (db.medicines||[]).map(m =>
     `${m["Brand Name (India)"]}|${m["Generic Name"]}|${m["Drug Category"]}|${m["Std Dosage"]}|${m["Std Timing"]}|${m["Duration (typical)"]}`
   ).join("\n");
@@ -65,37 +65,32 @@ function buildSystemPrompt(db, lang) {
     `${t["Code"]} = ${t["Plain English"]} (${t["Typical Times"]})`
   ).join("\n");
 
-  const dietMap = (db.diet||[]).map(d =>
-    `${d["Condition"]}: AVOID: ${d["Foods to AVOID"]} | INCLUDE: ${d["Foods to INCLUDE"]} | ACTIVITY: ${d["Activity Guidelines"]}`
-  ).join("\n");
-
   return `You are MedBuddy — an AI that simplifies medical documents for Indian patients.
 Output language: ${lang}.
 
 CRITICAL RULES:
-1. Only use information FROM the uploaded document. Never add outside advice.
+1. Only use information FROM the document. Never add outside advice.
 2. Medication dosages and timing must match the prescription EXACTLY.
-3. Do NOT suggest alternative medicines or add anything not in the document.
+3. Do NOT suggest alternative medicines.
 
-DATABASE KNOWLEDGE — use this to enrich and decode the prescription:
-
-=== MEDICINES (Brand|Generic|Category|Dosage|Timing|Duration) ===
+DATABASE:
+=== MEDICINES ===
 ${meds}
 
-=== SIDE EFFECTS BY DRUG CATEGORY ===
+=== SIDE EFFECTS ===
 ${se}
 
 === CONDITIONS ===
 ${conds}
 
-=== MEDICAL JARGON GLOSSARY ===
+=== GLOSSARY ===
 ${gloss}
 
-=== DOSAGE TIMING CODES ===
+=== TIMING CODES ===
 ${tim}
 
-=== DIET & ACTIVITY ===
-${dietMap}
+DOCUMENT TO ANALYZE:
+${docText}
 
 Respond ONLY with valid JSON:
 {
@@ -105,11 +100,11 @@ Respond ONLY with valid JSON:
     "explanation": "2-3 sentence plain explanation"
   },
   "medications": [
-    { "name": "exact name from prescription", "dosage": "e.g. 500mg", "timing": "decoded e.g. Morning and Night", "duration": "e.g. 7 days", "instructions": "e.g. After food" }
+    { "name": "exact name", "dosage": "e.g. 500mg", "timing": "decoded timing", "duration": "e.g. 7 days", "instructions": "e.g. After food" }
   ],
   "sideEffects": [
-    { "type": "warn", "text": "side effect to watch" },
-    { "type": "danger", "text": "when to call doctor immediately" }
+    { "type": "warn", "text": "side effect" },
+    { "type": "danger", "text": "when to call doctor" }
   ],
   "checklist": ["item 1", "item 2", "item 3"],
   "comparison": [
@@ -119,7 +114,7 @@ Respond ONLY with valid JSON:
 }
 
 let db = {};
-try { db = loadDB(); console.log("✅ DB loaded:", Object.fromEntries(Object.entries(db).map(([k,v])=>[k,v.length]))); }
+try { db = loadDB(); console.log("✅ DB loaded"); }
 catch(e) { console.warn("DB load failed:", e.message); }
 
 // ── Routes ───────────────────────────────────────────────────────
@@ -127,56 +122,48 @@ app.get("/api/db-stats", (req, res) => {
   res.json(Object.fromEntries(Object.entries(db).map(([k,v])=>[k, Array.isArray(v)?v.length:0])));
 });
 
-app.post("/api/reload-db", (req, res) => {
-  try { db = loadDB(); res.json({ success: true }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 app.post("/api/analyze", upload.single("file"), async (req, res) => {
-  if (!API_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY not set. Add it in Railway Variables tab." });
+  if (!GEMINI_KEY) return res.status(500).json({ error: "GEMINI_API_KEY not set in environment variables." });
 
   const { text, age, language } = req.body;
   const lang = language || "English";
-  const userContent = [];
+
+  let docText = "";
+  let imageParts = [];
 
   if (req.file) {
     const mime = req.file.mimetype;
     const b64  = req.file.buffer.toString("base64");
-    if (mime === "application/pdf") {
-      userContent.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } });
-    } else if (mime === "text/plain") {
-      userContent.push({ type: "text", text: "DOCUMENT:\n" + req.file.buffer.toString("utf8") });
+    if (mime === "text/plain") {
+      docText = req.file.buffer.toString("utf8");
     } else {
-      userContent.push({ type: "image", source: { type: "base64", media_type: mime, data: b64 } });
+      imageParts.push({ inline_data: { mime_type: mime, data: b64 } });
     }
   }
+  if (text && text.trim()) docText += "\n" + text.trim();
+  if (!docText && imageParts.length === 0) return res.status(400).json({ error: "No document provided" });
 
-  if (text && text.trim()) userContent.push({ type: "text", text: "DOCUMENT:\n" + text.trim() });
-  if (!userContent.length) return res.status(400).json({ error: "No document or text provided" });
+  const prompt = buildPrompt(db, lang, docText);
 
-  userContent.push({ type: "text", text: `Patient age: ${age||"not provided"}. Language: ${lang}. Analyze and return JSON only.` });
+  const parts = [];
+  if (imageParts.length > 0) parts.push(...imageParts);
+  parts.push({ text: prompt });
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
-        system: buildSystemPrompt(db, lang),
-        messages: [{ role: "user", content: userContent }]
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts }] })
+      }
+    );
 
     const data = await response.json();
-    if (!response.ok) return res.status(response.status).json({ error: data.error?.message || "API error" });
+    if (!response.ok) return res.status(response.status).json({ error: data.error?.message || "Gemini API error" });
 
-    const raw    = (data.content||[]).map(c=>c.text||"").join("");
-    const clean  = raw.replace(/```json|```/g,"").trim();
+    const raw   = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const clean = raw.replace(/```json|```/g, "").trim();
     const result = JSON.parse(clean);
     res.json({ success: true, result });
   } catch(err) {
@@ -189,5 +176,5 @@ app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
 
 app.listen(PORT, () => {
   console.log(`\n🏥 MedBuddy running on port ${PORT}`);
-  console.log(`🔑 API Key: ${API_KEY ? "✅ Set" : "❌ MISSING — add ANTHROPIC_API_KEY in Railway Variables"}`);
+  console.log(`🔑 Gemini Key: ${GEMINI_KEY ? "✅ Set" : "❌ MISSING — add GEMINI_API_KEY in Render Variables"}`);
 });
