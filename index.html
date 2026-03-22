@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MedBuddy AI — Your Medical Companion</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --sage:#6dba72;--sage-light:#88cc8d;--sage-pale:#3a6640;--sage-mist:#1a2e1c;
+  --forest:#7dd984;--moss:#5ab860;--parchment:#1a2218;--parchment2:#141c13;
+  --cream:#0f1710;--ink:#d8f0da;--ink2:#a8c8aa;--ink3:#6a8e6c;
+  --card-bg:rgba(10,20,11,0.78);--card-border:rgba(80,140,85,0.35);
+  --shadow:rgba(0,0,0,0.4);--shadow2:rgba(0,0,0,0.55);
+  --red-soft:#f07070;--yellow-soft:#d4a830;--blue-soft:#5aabbb;
+}
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;min-height:100vh;background-color:#0d1a0e;color:var(--ink);overflow-x:hidden}
+.bg-wash{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 75% 65% at 12% 8%,rgba(30,70,32,.75) 0%,transparent 65%),
+    radial-gradient(ellipse 55% 55% at 88% 5%,rgba(25,60,28,.6) 0%,transparent 62%),
+    radial-gradient(ellipse 65% 55% at 8% 82%,rgba(20,55,22,.65) 0%,transparent 62%),
+    radial-gradient(ellipse 60% 60% at 92% 88%,rgba(28,65,30,.7) 0%,transparent 65%),
+    radial-gradient(ellipse 85% 85% at 50% 50%,rgba(15,35,16,.5) 0%,transparent 80%),
+    linear-gradient(155deg,#0c1a0d 0%,#0f1e10 30%,#111f12 55%,#0d1a0e 100%)}
+.bg-texture{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.07;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E")}
+.leaf-corner{position:fixed;z-index:0;pointer-events:none;opacity:.55}
+.leaf-tl{top:-8px;left:-8px;width:280px}
+.leaf-tr{top:-8px;right:-8px;width:250px;transform:scaleX(-1)}
+.leaf-bl{bottom:-8px;left:-8px;width:260px;transform:scaleY(-1)}
+.leaf-br{bottom:-8px;right:-8px;width:270px;transform:scale(-1,-1)}
+.wrapper{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:0 24px 80px}
+header{text-align:center;padding:56px 0 18px;animation:fadeDown .8s ease both}
+.med-symbol{display:flex;justify-content:center;margin-bottom:20px}
+.med-symbol svg{filter:drop-shadow(0 0 18px rgba(109,186,114,.45));animation:pulse-glow 3s ease-in-out infinite}
+header h1{font-family:'Cormorant Garamond',serif;font-size:clamp(44px,7vw,78px);font-weight:600;
+  color:var(--ink);letter-spacing:-1px;line-height:1.05;margin-bottom:12px}
+header h1 em{font-style:italic;color:var(--forest)}
+header p{font-size:15px;color:var(--ink3);max-width:490px;margin:0 auto;line-height:1.75;font-weight:400}
+.divider{display:flex;align-items:center;gap:14px;justify-content:center;margin:26px 0 46px}
+.divider span{width:64px;height:1px;background:var(--sage-pale)}
+.divider .dicon{font-size:16px;opacity:.6}
+
+/* Server badge */
+.server-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 16px;border-radius:99px;
+  font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:18px;border:1px solid;cursor:default}
+.server-badge.online{background:rgba(50,130,60,.15);border-color:rgba(109,186,114,.35);color:var(--forest)}
+.server-badge.offline{background:rgba(240,112,112,.1);border-color:rgba(240,112,112,.3);color:var(--red-soft)}
+.server-badge.checking{background:rgba(212,168,48,.1);border-color:rgba(212,168,48,.3);color:var(--yellow-soft)}
+.badge-dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:none}
+.server-badge.checking .badge-dot{animation:spin .8s linear infinite}
+
+/* Card */
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:24px;padding:32px 36px;
+  backdrop-filter:blur(18px);box-shadow:0 4px 32px var(--shadow),0 1px 0 rgba(255,255,255,.04) inset;
+  animation:fadeUp .6s ease both;transition:box-shadow .3s}
+.card:hover{box-shadow:0 8px 44px var(--shadow2),0 1px 0 rgba(255,255,255,.05) inset}
+.card+.card{margin-top:20px}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);
+  display:flex;align-items:center;gap:10px;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--card-border)}
+.ci{width:34px;height:34px;background:rgba(60,110,65,.35);border:1px solid var(--card-border);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+
+/* Form */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
+textarea,select,input[type="number"]{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--card-border);
+  border-radius:14px;color:var(--ink);font-family:'Nunito',sans-serif;font-size:14px;padding:13px 16px;
+  outline:none;transition:border-color .2s,box-shadow .2s,background .2s;resize:none}
+textarea{height:132px}
+textarea::placeholder,input::placeholder{color:var(--ink3);opacity:.7}
+textarea:focus,select:focus,input[type="number"]:focus{border-color:var(--sage);background:rgba(255,255,255,.11);box-shadow:0 0 0 3px rgba(109,186,114,.18)}
+select option{background:#151e15;color:var(--ink)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.input-row{grid-template-columns:1fr}}
+
+/* Mode toggle */
+.mode-toggle{display:flex;gap:10px;margin-bottom:18px}
+.mode-btn{flex:1;padding:10px 16px;border-radius:11px;border:1px solid var(--card-border);
+  background:rgba(255,255,255,.05);color:var(--ink3);font-family:'Nunito',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.mode-btn.active{background:rgba(60,110,65,.3);border-color:var(--sage);color:var(--forest)}
+
+/* Upload */
+.upload-zone{border:2px dashed var(--sage-pale);border-radius:14px;padding:26px 20px;text-align:center;
+  cursor:pointer;background:rgba(255,255,255,.04);transition:all .22s;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--sage);background:rgba(109,186,114,.1)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-zone .up-icon{font-size:28px;margin-bottom:7px}
+.upload-zone p{font-size:13px;color:var(--ink3);line-height:1.65}
+.upload-zone strong{color:var(--forest)}
+#file-name{margin-top:7px;font-size:12px;color:var(--sage);font-weight:600}
+
+/* Button */
+.btn-analyze{width:100%;padding:16px;background:linear-gradient(135deg,#2d6e35,#3a8042);border:none;
+  border-radius:14px;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;
+  cursor:pointer;margin-top:6px;transition:opacity .2s,transform .15s,box-shadow .2s;
+  box-shadow:0 4px 24px rgba(50,130,60,.4);display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-analyze:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 32px rgba(50,130,60,.5)}
+.btn-analyze:active{transform:translateY(0)}
+.btn-analyze:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* Loader */
+.loader{display:none;align-items:center;gap:12px;padding:17px 20px;background:rgba(60,110,65,.18);
+  border:1px solid var(--sage-pale);border-radius:12px;margin-top:16px;font-size:14px;color:var(--forest);font-weight:600}
+.loader.show{display:flex}
+.spinner{width:20px;height:20px;border:2.5px solid var(--sage-pale);border-top-color:var(--forest);
+  border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+
+/* Error */
+.error-box{background:rgba(240,112,112,.1);border:1px solid rgba(240,112,112,.3);border-radius:12px;
+  padding:13px 18px;font-size:13px;color:var(--red-soft);margin-top:14px;display:none;line-height:1.6}
+.error-box.show{display:block}
+
+/* Results */
+#results{display:none}
+#results.show{display:block;animation:fadeUp .5s ease both}
+
+/* Action bar */
+.action-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.action-btn{display:flex;align-items:center;gap:7px;padding:10px 18px;border-radius:11px;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;border:1px solid}
+.action-btn.download{background:linear-gradient(135deg,#2d6e35,#3a8042);color:#fff;border-color:#3a8042;box-shadow:0 2px 12px rgba(50,130,60,.35)}
+.action-btn.download:hover{transform:translateY(-1px)}
+.action-btn.copy{background:rgba(255,255,255,.07);color:var(--forest);border-color:var(--card-border)}
+.action-btn.copy:hover{background:rgba(109,186,114,.15)}
+.action-btn.share{background:rgba(255,255,255,.07);color:var(--blue-soft);border-color:rgba(90,171,187,.3)}
+.action-btn.share:hover{background:rgba(90,171,187,.12)}
+.action-btn.whatsapp{background:rgba(37,211,102,.08);color:#55cc77;border-color:rgba(37,211,102,.28)}
+.action-btn.whatsapp:hover{background:rgba(37,211,102,.16)}
+
+/* Summary */
+.summary-bar{background:linear-gradient(135deg,rgba(50,100,55,.3),rgba(30,60,32,.2));
+  border:1px solid var(--sage-pale);border-radius:14px;padding:18px 22px;display:flex;align-items:flex-start;gap:14px}
+.summary-bar .si{font-size:22px}
+.summary-bar p{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;font-style:italic;color:var(--forest);line-height:1.55}
+
+/* Diagnosis */
+.diagnosis-box{background:linear-gradient(135deg,rgba(40,85,45,.25),rgba(15,30,16,.3));
+  border:1px solid var(--sage-pale);border-radius:16px;padding:22px 26px}
+.diag-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--sage);margin-bottom:7px}
+.diag-value{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--ink);margin-bottom:12px;line-height:1.3}
+.diag-plain{font-size:14px;color:var(--ink2);line-height:1.78;padding-top:13px;border-top:1px solid var(--card-border)}
+
+/* Comparison */
+.comparison-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.comparison-grid{grid-template-columns:1fr}}
+.compare-box{background:rgba(255,255,255,.04);border:1px solid var(--card-border);border-radius:14px;padding:18px}
+.compare-box .cb-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.compare-box.original .cb-label{color:var(--ink3)}
+.compare-box.simple .cb-label{color:var(--forest)}
+.compare-box p{font-size:14px;color:var(--ink2);line-height:1.78}
+.compare-box.simple p{color:var(--ink)}
+
+/* Med table */
+.med-table{width:100%;border-collapse:collapse}
+.med-table th{background:rgba(60,110,65,.2);padding:11px 14px;text-align:left;font-size:11px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--card-border)}
+.med-table td{padding:13px 14px;font-size:14px;color:var(--ink2);border-bottom:1px solid rgba(80,140,85,.15);vertical-align:top}
+.med-table tr:last-child td{border-bottom:none}
+.med-table tr:hover td{background:rgba(60,110,65,.12)}
+.med-name{color:var(--forest);font-weight:700}
+.dosage-pill{display:inline-block;background:rgba(109,186,114,.15);border:1px solid rgba(109,186,114,.3);
+  color:var(--sage);padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}
+
+/* Effects */
+.effect-item{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid rgba(80,140,85,.15)}
+.effect-item:last-child{border-bottom:none}
+.effect-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.effect-dot.warn{background:var(--yellow-soft);box-shadow:0 0 7px rgba(212,168,48,.5)}
+.effect-dot.danger{background:var(--red-soft);box-shadow:0 0 7px rgba(240,112,112,.5)}
+.effect-dot.info{background:var(--blue-soft);box-shadow:0 0 7px rgba(90,171,187,.5)}
+.effect-text{font-size:14px;color:var(--ink2);line-height:1.65}
+
+/* Checklist */
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(80,140,85,.15)}
+.check-item:last-child{border-bottom:none}
+.check-box{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#2d6e35,#3a8042);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;margin-top:1px;
+  box-shadow:0 2px 8px rgba(50,130,60,.35)}
+.check-text{font-size:14px;color:var(--ink2);line-height:1.65}
+
+/* Two-col */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:680px){.two-col{grid-template-columns:1fr}}
+
+/* Toast */
+.toast-container{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;
+  display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:#2d6e35;color:#d8f0da;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;
+  padding:12px 24px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.5);
+  animation:toastIn .3s ease both;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.toast.error{background:#7a2a2a;color:#ffd0d0}
+.toast.info{background:#1e4a55;color:#c0e8f0}
+.toast.out{animation:toastOut .3s ease both}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse-glow{0%,100%{filter:drop-shadow(0 0 14px rgba(109,186,114,.4))}50%{filter:drop-shadow(0 0 28px rgba(109,186,114,.75))}}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(8px) scale(.95)}}
+.card:nth-child(2){animation-delay:.1s}.card:nth-child(3){animation-delay:.2s}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0f1710}::-webkit-scrollbar-thumb{background:#2a4a2c;border-radius:99px}
+</style>
+</head>
+<body>
+
+<div class="bg-wash"></div>
+<div class="bg-texture"></div>
+
+<!-- Botanical corners -->
+<svg class="leaf-corner leaf-tl" viewBox="0 0 280 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g opacity="0.9">
+    <line x1="12" y1="200" x2="110" y2="18" stroke="#5a8a5d" stroke-width="2.2" opacity="0.38"/>
+    <line x1="5" y1="140" x2="85" y2="28" stroke="#4a7a4d" stroke-width="1.6" opacity="0.32"/>
+    <ellipse cx="62" cy="42" rx="30" ry="16" fill="#7aaa7d" opacity="0.52" transform="rotate(-32 62 42)"/>
+    <ellipse cx="42" cy="68" rx="24" ry="14" fill="#5c8a5f" opacity="0.55" transform="rotate(-48 42 68)"/>
+    <ellipse cx="85" cy="24" rx="19" ry="11" fill="#a0c8a2" opacity="0.48" transform="rotate(-16 85 24)"/>
+    <ellipse cx="22" cy="95" rx="21" ry="12" fill="#6a9a6d" opacity="0.5" transform="rotate(-58 22 95)"/>
+    <ellipse cx="58" cy="118" rx="27" ry="14" fill="#4a7a4d" opacity="0.45" transform="rotate(-72 58 118)"/>
+    <circle cx="38" cy="78" r="15" fill="#90bf92" opacity="0.32"/>
+    <circle cx="68" cy="47" r="12" fill="#6aaa6d" opacity="0.28"/>
+  </g>
+</svg>
+<svg class="leaf-corner leaf-tr" viewBox="0 0 250 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g opacity="0.85">
+    <line x1="240" y1="180" x2="28" y2="12" stroke="#5a8a5d" stroke-width="2" opacity="0.35"/>
+    <ellipse cx="52" cy="36" rx="30" ry="16" fill="#6aaa6d" opacity="0.5" transform="rotate(28 52 36)"/>
+    <ellipse cx="84" cy="62" rx="24" ry="14" fill="#4a7a4d" opacity="0.5" transform="rotate(44 84 62)"/>
+    <ellipse cx="28" cy="20" rx="20" ry="11" fill="#98c89a" opacity="0.44" transform="rotate(12 28 20)"/>
+    <ellipse cx="108" cy="88" rx="22" ry="13" fill="#5c8a5f" opacity="0.44" transform="rotate(58 108 88)"/>
+    <circle cx="78" cy="52" r="14" fill="#90bf92" opacity="0.28"/>
+  </g>
+</svg>
+<svg class="leaf-corner leaf-bl" viewBox="0 0 260 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g opacity="0.82">
+    <line x1="10" y1="100" x2="100" y2="268" stroke="#5a8a5d" stroke-width="2" opacity="0.35"/>
+    <ellipse cx="58" cy="238" rx="28" ry="15" fill="#5c8a5f" opacity="0.5" transform="rotate(32 58 238)"/>
+    <ellipse cx="32" cy="210" rx="22" ry="13" fill="#7aaa7d" opacity="0.5" transform="rotate(52 32 210)"/>
+    <ellipse cx="88" cy="258" rx="20" ry="11" fill="#6aaa6d" opacity="0.44" transform="rotate(16 88 258)"/>
+    <circle cx="42" cy="222" r="13" fill="#98c89a" opacity="0.28"/>
+  </g>
+</svg>
+<svg class="leaf-corner leaf-br" viewBox="0 0 270 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g opacity="0.86">
+    <line x1="260" y1="100" x2="168" y2="272" stroke="#5a8a5d" stroke-width="2.2" opacity="0.36"/>
+    <ellipse cx="212" cy="235" rx="30" ry="16" fill="#6aaa6d" opacity="0.52" transform="rotate(-32 212 235)"/>
+    <ellipse cx="235" cy="200" rx="24" ry="14" fill="#4a7a4d" opacity="0.5" transform="rotate(-50 235 200)"/>
+    <ellipse cx="178" cy="255" rx="20" ry="12" fill="#7aaa7d" opacity="0.48" transform="rotate(-16 178 255)"/>
+    <circle cx="222" cy="218" r="13" fill="#98c89a" opacity="0.28"/>
+  </g>
+</svg>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="wrapper">
+  <header>
+    <div class="med-symbol">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+        <circle cx="40" cy="40" r="38" fill="rgba(30,70,32,0.45)" stroke="rgba(109,186,114,0.5)" stroke-width="1.5"/>
+        <line x1="40" y1="12" x2="40" y2="68" stroke="#7dd984" stroke-width="3" stroke-linecap="round"/>
+        <path d="M40 18 C28 22,28 30,40 34 C52 38,52 46,40 50 C28 54,28 60,40 64" stroke="#6dba72" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <path d="M40 18 C52 22,52 30,40 34 C28 38,28 46,40 50 C52 54,52 60,40 64" stroke="#6dba72" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <ellipse cx="33" cy="17" rx="4" ry="2.8" fill="#6dba72" transform="rotate(-30 33 17)"/>
+        <ellipse cx="47" cy="17" rx="4" ry="2.8" fill="#6dba72" transform="rotate(30 47 17)"/>
+        <circle cx="32" cy="15.5" r="1" fill="#0d1a0e"/>
+        <circle cx="48" cy="15.5" r="1" fill="#0d1a0e"/>
+        <path d="M40 20 C32 14,20 16,22 22 C24 26,34 24,40 24" fill="rgba(109,186,114,0.35)" stroke="rgba(109,186,114,0.6)" stroke-width="1"/>
+        <path d="M40 20 C48 14,60 16,58 22 C56 26,46 24,40 24" fill="rgba(109,186,114,0.35)" stroke="rgba(109,186,114,0.6)" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <!-- Live server status -->
+    <div style="display:flex;justify-content:center;margin-bottom:4px">
+      <div class="server-badge checking" id="serverBadge">
+        <div class="badge-dot"></div>
+        <span id="serverStatus">Connecting to engine...</span>
+      </div>
+    </div>
+
+    <h1>Med<em>Buddy</em> AI</h1>
+    <p>Upload your prescription or discharge summary and instantly receive a plain-language breakdown, medication schedule, and follow-up plan.</p>
+    <div class="divider"><span></span><div class="dicon">🍃</div><span></span></div>
+  </header>
+
+  <!-- ── Input card ── -->
+  <div class="card">
+    <div class="card-title"><div class="ci">📋</div>Input Prescription</div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeText" onclick="setMode('text')">✏️ &nbsp;Paste Text</button>
+      <button class="mode-btn" id="modeFile" onclick="setMode('file')">📁 &nbsp;Upload File</button>
+    </div>
+
+    <div id="textSection">
+      <div class="field">
+        <label>Paste Prescription Text</label>
+        <textarea id="input" placeholder="Paste prescription or discharge summary text here..."></textarea>
+      </div>
+    </div>
+
+    <div id="fileSection" style="display:none">
+      <div class="field">
+        <label>Upload File (PDF / Image / TXT)</label>
+        <div class="upload-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp"/>
+          <div class="up-icon">🌿</div>
+          <p><strong>Click to upload</strong> or drag & drop</p>
+          <p style="font-size:12px;margin-top:4px;opacity:.75">PDF · PNG · JPG · WEBP · TXT — max 20 MB</p>
+          <div id="file-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="field">
+        <label>Patient Age (optional)</label>
+        <input type="number" id="age" placeholder="e.g. 45" min="1" max="120"/>
+      </div>
+      <div class="field">
+        <label>Output Language</label>
+        <select id="lang">
+          <option value="English">English</option>
+          <option value="Hindi">Hindi</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+      🔬 &nbsp;Analyze Prescription
+    </button>
+
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <span id="loader-text">Reading your prescription...</span>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- ── Results ── -->
+  <div id="results">
+    <div class="action-bar" style="margin-top:28px">
+      <button class="action-btn download" onclick="downloadPDF()">⬇️ &nbsp;Download PDF</button>
+      <button class="action-btn copy"     onclick="copyReport()">📋 &nbsp;Copy Report</button>
+      <button class="action-btn share"    onclick="shareReport()">🔗 &nbsp;Share</button>
+      <button class="action-btn whatsapp" onclick="sendWhatsApp()">💬 &nbsp;WhatsApp</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="ci">📌</div>One-Line Summary</div>
+      <div class="summary-bar">
+        <div class="si">💬</div>
+        <p id="summaryText">—</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="ci">🩺</div>Diagnosis</div>
+      <div class="diagnosis-box">
+        <div class="diag-label">Medical Diagnosis</div>
+        <div class="diag-value" id="diagValue">—</div>
+        <div class="diag-plain" id="diagPlain">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="ci">🔄</div>Original vs Plain Language</div>
+      <div class="comparison-grid">
+        <div class="compare-box original">
+          <div class="cb-label">🔒 Medical Jargon</div>
+          <p id="originalText">—</p>
+        </div>
+        <div class="compare-box simple">
+          <div class="cb-label">✅ Plain Language</div>
+          <p id="simpleText">—</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title"><div class="ci">💊</div>Medication Schedule</div>
+        <table class="med-table">
+          <thead><tr><th>Medicine</th><th>Dosage</th><th>Timing</th><th>Days</th></tr></thead>
+          <tbody id="medsBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="ci">⚠️</div>Side Effect Alerts</div>
+        <div id="effectsList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="ci">✅</div>Follow-Up Checklist</div>
+      <div id="checkList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Config ────────────────────────────────────────────────────────────────
+// When served by FastAPI (http://localhost:8000), API_BASE can be empty
+// so all fetch calls go to the same origin automatically.
+const API_BASE = '';   // leave empty — FastAPI serves both UI and API
+
+let currentMode = 'text';
+let lastOutput  = null;
+
+// ─── Server badge ──────────────────────────────────────────────────────────
+async function checkServer() {
+  const badge  = document.getElementById('serverBadge');
+  const status = document.getElementById('serverStatus');
+  try {
+    const r = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      badge.className  = 'server-badge online';
+      status.textContent = '● Clinical Engine Online';
+    } else { throw new Error(); }
+  } catch {
+    badge.className  = 'server-badge offline';
+    status.textContent = '● Engine Offline — run the server';
+  }
+}
+checkServer();
+setInterval(checkServer, 15000); // re-check every 15 s
+
+// ─── Mode toggle ───────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeText').classList.toggle('active', mode === 'text');
+  document.getElementById('modeFile').classList.toggle('active', mode === 'file');
+  document.getElementById('textSection').style.display = mode === 'text' ? '' : 'none';
+  document.getElementById('fileSection').style.display = mode === 'file' ? '' : 'none';
+}
+
+// ─── File drag & drop ──────────────────────────────────────────────────────
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', updateFileName);
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; updateFileName(); }
+});
+function updateFileName() {
+  const f = fileInput.files[0];
+  document.getElementById('file-name').textContent = f ? '📎 ' + f.name : '';
+}
+
+// ─── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success', duration = 3200) {
+  const tc = document.getElementById('toastContainer');
+  const t  = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  tc.appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 320); }, duration);
+}
+
+// ─── Main analyze ──────────────────────────────────────────────────────────
+async function analyze() {
+  const errorBox = document.getElementById('errorBox');
+  errorBox.classList.remove('show');
+
+  const age  = document.getElementById('age').value || '';
+  const lang = document.getElementById('lang').value || 'English';
+  const btn    = document.getElementById('analyzeBtn');
+  const loader = document.getElementById('loader');
+
+  let endpoint, formData;
+
+  if (currentMode === 'text') {
+    const text = document.getElementById('input').value.trim();
+    if (!text) {
+      errorBox.textContent = '⚠️ Please paste prescription text first.';
+      errorBox.classList.add('show'); return;
+    }
+    endpoint = `${API_BASE}/api/analyze`;
+    formData = new FormData();
+    formData.append('text', text);
+    formData.append('age',  age);
+    formData.append('lang', lang);
+  } else {
+    const file = fileInput.files[0];
+    if (!file) {
+      errorBox.textContent = '⚠️ Please select a file to upload.';
+      errorBox.classList.add('show'); return;
+    }
+    endpoint = `${API_BASE}/api/analyze/upload`;
+    formData = new FormData();
+    formData.append('file', file);
+    formData.append('age',  age);
+    formData.append('lang', lang);
+  }
+
+  btn.disabled = true;
+  loader.classList.add('show');
+  document.getElementById('results').classList.remove('show');
+
+  const msgs = [
+    'Reading your prescription...',
+    'Extracting medications and dosages...',
+    'Simplifying medical jargon...',
+    'Building your health summary...'
+  ];
+  let li = 0;
+  const lt = document.getElementById('loader-text');
+  lt.textContent = msgs[0];
+  const iv = setInterval(() => { li = (li + 1) % msgs.length; lt.textContent = msgs[li]; }, 1900);
+
+  try {
+    const res = await fetch(endpoint, { method: 'POST', body: formData });
+
+    if (!res.ok) {
+      let errMsg = `Server error (HTTP ${res.status})`;
+      try { const e = await res.json(); errMsg = e.detail || errMsg; } catch {}
+      throw new Error(errMsg);
+    }
+
+    const output = await res.json();
+    lastOutput = output;
+    renderResults(output);
+    showToast('✅ Analysis complete!', 'success');
+    checkServer();
+
+  } catch (err) {
+    const msg = err.message || 'Something went wrong. Is the server running?';
+    errorBox.textContent = '❌ ' + msg;
+    errorBox.classList.add('show');
+    showToast('❌ Analysis failed.', 'error');
+  } finally {
+    clearInterval(iv);
+    btn.disabled = false;
+    loader.classList.remove('show');
+  }
+}
+
+// ─── Render ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function renderResults(d) {
+  document.getElementById('summaryText').textContent  = d.summary           || '—';
+  document.getElementById('diagValue').textContent    = d.diagnosis_name    || '—';
+  document.getElementById('diagPlain').textContent    = d.diagnosis_plain   || '—';
+  document.getElementById('originalText').textContent = d.original_diagnosis|| '—';
+  document.getElementById('simpleText').textContent   = d.plain_diagnosis   || '—';
+
+  const tbody = document.getElementById('medsBody');
+  tbody.innerHTML = '';
+  (d.medications || []).forEach(m => {
+    tbody.innerHTML += `<tr>
+      <td><span class="med-name">${esc(m.name)}</span></td>
+      <td><span class="dosage-pill">${esc(m.dosage)}</span></td>
+      <td>${esc(m.timing)}</td>
+      <td>${esc(m.days)}</td>
+    </tr>`;
+  });
+
+  const ef = document.getElementById('effectsList');
+  ef.innerHTML = '';
+  (d.side_effects || []).forEach(e => {
+    const sev = ['warn','danger','info'].includes(e.severity) ? e.severity : 'warn';
+    ef.innerHTML += `<div class="effect-item">
+      <div class="effect-dot ${sev}"></div>
+      <div class="effect-text">${esc(e.text)}</div>
+    </div>`;
+  });
+
+  const ck = document.getElementById('checkList');
+  ck.innerHTML = '';
+  (d.checklist || []).forEach(c => {
+    ck.innerHTML += `<div class="check-item">
+      <div class="check-box">✓</div>
+      <div class="check-text">${esc(c)}</div>
+    </div>`;
+  });
+
+  document.getElementById('results').classList.add('show');
+  setTimeout(() => document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+}
+
+// ─── Report builder ────────────────────────────────────────────────────────
+function buildReport() {
+  if (!lastOutput) return '';
+  const d = lastOutput;
+  let r = 'MEDBUDDY AI — PRESCRIPTION ANALYSIS\n=====================================\n\n';
+  r += `📌 SUMMARY\n${d.summary||'—'}\n\n`;
+  r += `🩺 DIAGNOSIS\n${d.diagnosis_name||'—'}\n${d.diagnosis_plain||'—'}\n\n`;
+  r += `💊 MEDICATION SCHEDULE\n`;
+  (d.medications||[]).forEach(m => { r += `  • ${m.name} — ${m.dosage}, ${m.timing}, ${m.days}\n`; });
+  r += `\n⚠️ SIDE EFFECTS\n`;
+  (d.side_effects||[]).forEach(e => { r += `  • ${e.text}\n`; });
+  r += `\n✅ FOLLOW-UP CHECKLIST\n`;
+  (d.checklist||[]).forEach(c => { r += `  ✔ ${c}\n`; });
+  return r;
+}
+
+// ─── Action buttons ────────────────────────────────────────────────────────
+function copyReport() {
+  if (!lastOutput) { showToast('⚠️ Analyze first.','info'); return; }
+  navigator.clipboard.writeText(buildReport())
+    .then(() => showToast('📋 Copied to clipboard!'))
+    .catch(() => showToast('❌ Copy failed.','error'));
+}
+function shareReport() {
+  if (!lastOutput) { showToast('⚠️ Analyze first.','info'); return; }
+  if (navigator.share) {
+    navigator.share({ title:'MedBuddy AI Report', text: buildReport() }).catch(() => {});
+  } else { copyReport(); showToast('🔗 Copied — paste to share!','info'); }
+}
+function sendWhatsApp() {
+  if (!lastOutput) { showToast('⚠️ Analyze first.','info'); return; }
+  window.open(`https://wa.me/?text=${encodeURIComponent(buildReport())}`, '_blank');
+}
+
+function downloadPDF() {
+  if (!lastOutput) { showToast('⚠️ Analyze first.','info'); return; }
+  if (typeof window.jspdf === 'undefined') { showToast('⏳ PDF loading — try again.','info'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const d = lastOutput;
+  const M = 50, W = doc.internal.pageSize.getWidth();
+  let y = 60;
+
+  doc.setFillColor(74,113,85); doc.rect(0,0,W,52,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont('helvetica','bold');
+  doc.text('MedBuddy AI — Prescription Report', M, 34);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text(new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'}), W-M, 34, {align:'right'});
+
+  y = 78;
+  const section = (icon, title) => {
+    if (y > 750) { doc.addPage(); y = 50; }
+    doc.setFillColor(232,240,229); doc.rect(M-10, y-15, W-M*2+20, 24,'F');
+    doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(74,113,85);
+    doc.text(`${icon}  ${title}`, M, y); doc.setTextColor(60,78,62); y += 20;
+  };
+  const body = (txt, indent=0) => {
+    doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(74,90,75);
+    doc.splitTextToSize(txt, W-M*2-indent).forEach(l => { if(y>780){doc.addPage();y=50;} doc.text(l, M+indent, y); y+=16; });
+    y+=3;
+  };
+
+  section('📌','One-Line Summary'); body(d.summary||'—'); y+=6;
+  section('🩺','Diagnosis');
+  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(44,70,46);
+  if(y>780){doc.addPage();y=50;} doc.text(d.diagnosis_name||'—', M, y); y+=18;
+  body(d.diagnosis_plain||'—'); y+=4;
+  section('💊','Medication Schedule');
+  (d.medications||[]).forEach(m => body(`• ${m.name}   ${m.dosage}   ${m.timing}   ${m.days}`, 8));
+  y+=4;
+  section('⚠️','Side Effect Alerts');
+  (d.side_effects||[]).forEach(e => body(`• ${e.text}`, 8)); y+=4;
+  section('✅','Follow-Up Checklist');
+  (d.checklist||[]).forEach(c => body(`✔  ${c}`, 8));
+  doc.setFontSize(9); doc.setTextColor(150,170,150);
+  doc.text('Generated by MedBuddy AI — IAR Udaan Hackathon 2026', M, 822);
+  doc.save('MedBuddy_Report.pdf');
+  showToast('⬇️ PDF downloaded!');
+}
+</script>
+</body>
+</html>
