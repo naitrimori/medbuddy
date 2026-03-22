@@ -25,7 +25,9 @@ const upload = multer({
 
 // ── Load Excel Database ──────────────────────────────────────────
 function loadDB() {
-  const dbPath = path.join(__dirname, "data", "MedBuddy_Database.xlsx");
+  const dbPath = fs.existsSync(path.join(__dirname, "data", "MedBuddy_Database.xlsx"))
+    ? path.join(__dirname, "data", "MedBuddy_Database.xlsx")
+    : path.join(__dirname, "MedBuddy_Database.xlsx");
   if (!fs.existsSync(dbPath)) return {};
   const wb = XLSX.readFile(dbPath);
   const get = (keyword) => wb.SheetNames.find(n => n.includes(keyword));
