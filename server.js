@@ -105,7 +105,7 @@ app.post("/api/analyze", upload.single("file"), async (req, res) => {
         "X-Title": "MedBuddy"
       },
       body: JSON.stringify({
-        model: "google/gemma-3-4b-it:free",
+        model: "mistralai/mistral-7b-instruct:free",
         messages: [
           { role: "system", content: buildSystemPrompt(db, lang) },
           { role: "user", content: userContent }
