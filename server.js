@@ -62,8 +62,17 @@ CRITICAL RULES:
 === GLOSSARY ===\n${gloss}
 === TIMING CODES ===\n${tim}
 
-Respond ONLY with valid JSON:
-{"summary":"...","diagnosis":{"condition":"...","explanation":"..."},"medications":[{"name":"...","dosage":"...","timing":"...","duration":"...","instructions":"..."}],"sideEffects":[{"type":"warn","text":"..."},{"type":"danger","text":"..."}],"checklist":["..."],"comparison":[{"jargon":"...","plain":"..."}]}`;
+IMPORTANT: The "comparison" field is REQUIRED. Pick 3-4 difficult medical words or abbreviations from the document and explain them in plain language.
+
+Respond ONLY with valid JSON — no extra text, no markdown:
+{
+  "summary": "one sentence family summary",
+  "diagnosis": {"condition": "plain condition name", "explanation": "2-3 sentence plain explanation"},
+  "medications": [{"name": "medicine name", "dosage": "e.g. 500mg", "timing": "e.g. Morning and Night", "duration": "e.g. 7 days", "instructions": "e.g. After food"}],
+  "sideEffects": [{"type": "warn", "text": "side effect"}, {"type": "danger", "text": "call doctor if..."}],
+  "checklist": ["follow up item 1", "diet restriction", "activity advice"],
+  "comparison": [{"jargon": "medical term from document", "plain": "plain language explanation"}, {"jargon": "another term", "plain": "plain explanation"}, {"jargon": "third term", "plain": "plain explanation"}]
+}`;
 }
 
 let db = {};
