@@ -1,7 +1,7 @@
 {
   "name": "medbuddy-server",
-  "version": "1.0.0",
-  "description": "MedBuddy — AI Medical Document Simplifier backend",
+  "version": "2.0.0",
+  "description": "MedBuddy — AI Medical Document Simplifier",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
