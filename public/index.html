@@ -732,7 +732,7 @@ textarea::placeholder{color:#7a9a7a;}
 </header>
 
 <!-- ==================== MAIN APP VIEW ==================== -->
-<div class="view active" id="view-main">
+<div class="view" id="view-main">
   <div class="main">
 
     <div class="hero">
@@ -880,15 +880,6 @@ textarea::placeholder{color:#7a9a7a;}
         <div class="section-body" id="diagnosis-text">—</div>
       </div>
 
-      <!-- SIDE EFFECTS -->
-      <div class="result-section">
-        <div class="section-header">
-          <span class="sh-icon">⚠️</span>
-          <span id="lbl-sideeffects">Watch out for</span>
-          <span class="sh-sub" id="lbl-sideeffects-sub">Side effect alerts</span>
-        </div>
-        <div class="section-body" id="side-effects-text">—</div>
-      </div>
 
       <!-- CHECKLIST -->
       <div class="result-section">
@@ -957,7 +948,7 @@ textarea::placeholder{color:#7a9a7a;}
 </div>
 
 <!-- ==================== SIGNUP VIEW ==================== -->
-<div class="view" id="view-signup">
+<div class="view active" id="view-signup">
   <div class="main narrow">
 
     <div class="top-wrap">
@@ -1056,17 +1047,47 @@ textarea::placeholder{color:#7a9a7a;}
       </div>
     </div>
 
-    <div class="llink" id="ll">Already have an account? <a href="#" onclick="showView('main')">Sign in here</a></div>
+    <div class="llink" id="ll">Already have an account? <a href="#" onclick="showSignIn()">Sign in here</a></div>
+  </div>
+</div>
+
+<!-- ==================== SIGN IN VIEW ==================== -->
+<div class="view" id="view-signin">
+  <div class="main narrow">
+    <div class="top-wrap">
+      <div class="top-icon">⚕</div>
+      <h1 class="top-title">Welcome <em>Back</em></h1>
+      <p class="top-sub">Sign in to continue</p>
+    </div>
+    <div class="card">
+      <div class="errbox" id="si-err"><span>⚠️</span><span id="si-err-txt">Error</span></div>
+      <div class="ftitle"><span class="ficon">🔒</span> Sign In</div>
+      <div class="fld">
+        <label>Email Address</label>
+        <input type="email" id="si-email" placeholder="e.g. rahul@email.com">
+      </div>
+      <div class="fld">
+        <label>Password</label>
+        <div class="pwrap">
+          <input type="password" id="si-pw" placeholder="Your password">
+          <button class="peye" onclick="teye('si-pw')" type="button">👁</button>
+        </div>
+      </div>
+      <button class="btnp" onclick="signIn()" style="margin-top:.5rem;">Sign In →</button>
+      <div class="llink" style="margin-top:1rem;">New to MedBuddy? <a href="#" onclick="showView('signup')">Create account</a></div>
+    </div>
   </div>
 </div>
 
 <script>
 /* ===== NAVIGATION ===== */
-let currentView = 'main';
+let currentView = 'signup';
 
 function showView(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-' + v).classList.add('active');
+  const target = document.getElementById('view-' + v);
+  if (!target) return;
+  target.classList.add('active');
   currentView = v;
   updateHeaderBtn();
   window.scrollTo({top:0, behavior:'smooth'});
@@ -1074,21 +1095,31 @@ function showView(v) {
 }
 
 function toggleHeaderBtn() {
-  if (currentView === 'main') showView('signup');
-  else showView('main');
+  const saved = localStorage.getItem('mb_user');
+  if (currentView === 'main') {
+    if (saved) showView('family'); else showView('signup');
+  } else {
+    showView('main');
+  }
 }
 
 function updateHeaderBtn() {
   const btn = document.getElementById('header-btn');
+  const saved = localStorage.getItem('mb_user');
+  let userName = '';
+  if (saved) { try { userName = JSON.parse(saved).name || ''; } catch(e) {} }
   if (currentView === 'main') {
-    btn.textContent = 'Sign Up';
+    btn.textContent = userName ? userName.split(' ')[0] : 'Sign Up';
     btn.className = 'hbtn';
-  } else if (currentView === 'family') {
-    btn.textContent = 'Sign Up';
+    btn.onclick = () => { if(userName) showView('family'); else showView('signup'); };
+  } else if (currentView === 'family' || currentView === 'signin') {
+    btn.textContent = userName ? userName.split(' ')[0] : 'Sign Up';
     btn.className = 'hbtn';
+    btn.onclick = () => showView('main');
   } else {
-    btn.textContent = '← Back to App';
+    btn.textContent = '← Back';
     btn.className = 'hbtn';
+    btn.onclick = () => showView('main');
   }
 }
 
@@ -1226,7 +1257,6 @@ const UI_STRINGS = {
     badge: '🇬🇧 English',
     copy: 'Copy to share',
     diagnosis: 'What you have', diagnosisSub: 'Plain-language diagnosis',
-    sideeffects: 'Watch out for', sideeffectsSub: 'Side effect alerts',
     checklist: 'Follow-up checklist', checklistSub: 'Tap to check off',
     meds: 'Medication schedule', medsSub: 'Exactly as prescribed',
     jargon: 'Medical jargon vs plain language', jargonSub: 'Side-by-side',
@@ -1243,7 +1273,6 @@ const UI_STRINGS = {
     badge: '🇮🇳 हिंदी',
     copy: 'शेयर करें',
     diagnosis: 'आपकी बीमारी', diagnosisSub: 'सरल भाषा में',
-    sideeffects: 'सावधान रहें', sideeffectsSub: 'दुष्प्रभाव की जानकारी',
     checklist: 'फॉलो-अप सूची', checklistSub: 'टैप करके चेक करें',
     meds: 'दवाई का समय', medsSub: 'डॉक्टर के अनुसार',
     jargon: 'मेडिकल शब्द बनाम सरल भाषा', jargonSub: 'साथ-साथ तुलना',
@@ -1260,7 +1289,6 @@ const UI_STRINGS = {
     badge: '🏵️ ગુજરાતી',
     copy: 'શેર કરો',
     diagnosis: 'તમારી બીમારી', diagnosisSub: 'સરળ ભાષામાં',
-    sideeffects: 'સાવધ રહો', sideeffectsSub: 'આડ-અસર ની માહિતી',
     checklist: 'ફૉલો-અપ સૂચિ', checklistSub: 'ટૅપ કરીને ચેક કરો',
     meds: 'દવાનો સમય', medsSub: 'ડૉક્ટર પ્રમાણે',
     jargon: 'તબીબી શબ્દ vs સરળ ભાષા', jargonSub: 'સાથે-સાથે સરખામણી',
@@ -1294,8 +1322,6 @@ function applyResultLabels(lang) {
   document.getElementById('lbl-copy').textContent = s.copy;
   document.getElementById('lbl-diagnosis').textContent = s.diagnosis;
   document.getElementById('lbl-diagnosis-sub').textContent = s.diagnosisSub;
-  document.getElementById('lbl-sideeffects').textContent = s.sideeffects;
-  document.getElementById('lbl-sideeffects-sub').textContent = s.sideeffectsSub;
   document.getElementById('lbl-checklist').textContent = s.checklist;
   document.getElementById('lbl-checklist-sub').textContent = s.checklistSub;
   document.getElementById('lbl-meds').textContent = s.meds;
@@ -1344,9 +1370,9 @@ async function analyzeDoc() {
     }
 
     const langInstruction = lang === 'Hindi'
-      ? 'IMPORTANT: Respond ENTIRELY in Hindi (हिंदी). Every field — summary, diagnosis, sideEffects, followUpChecklist items, medication names/timings/instructions, jargon terms and explanations — must be in Hindi script. Do not use English except for medicine brand names.'
+      ? 'IMPORTANT: Respond ENTIRELY in Hindi (हिंदी). Every field — summary, diagnosis, followUpChecklist items, medication names/timings/instructions, jargon terms and explanations — must be in Hindi script. Do not use English except for medicine brand names.'
       : lang === 'Gujarati'
-      ? 'IMPORTANT: Respond ENTIRELY in Gujarati (ગુજરાતી). Every field — summary, diagnosis, sideEffects, followUpChecklist items, medication timings/instructions, jargon explanations — must be in Gujarati script. Do not use English except for medicine brand names.'
+      ? 'IMPORTANT: Respond ENTIRELY in Gujarati (ગુજરાતી). Every field — summary, diagnosis, followUpChecklist items, medication timings/instructions, jargon explanations — must be in Gujarati script. Do not use English except for medicine brand names.'
       : 'Respond in clear, simple English.';
 
     const prompt = `You are MedBuddy, an AI that simplifies Indian medical documents for patients.
@@ -1364,7 +1390,6 @@ Return EXACTLY this JSON structure:
 {
   "summary": "One-line summary for family (max 20 words)",
   "diagnosis": "Plain-language diagnosis explanation (2-4 sentences)",
-  "sideEffects": "Side effects and warnings to watch for (2-4 sentences)",
   "followUpChecklist": ["item1", "item2", "item3", "item4"],
   "medications": [
     {"name": "Medicine name", "dosage": "e.g. 500mg", "timing": "e.g. Morning & Night", "duration": "e.g. 7 days", "instructions": "e.g. After food"}
@@ -1374,20 +1399,28 @@ Return EXACTLY this JSON structure:
   ]
 }`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1200,
-        messages: [{ role: "user", content: prompt }]
-      })
+    // Build FormData so we can send files to our backend proxy
+    const formData = new FormData();
+    formData.append('lang', lang);
+    if (age) formData.append('age', age);
+    if (isDocTab && selectedFile) {
+      formData.append('file', selectedFile);
+    } else if (isDocTab && docContent) {
+      formData.append('text', docContent);
+    } else if (isAudioTab && selectedAudioFile) {
+      formData.append('audioFile', selectedAudioFile);
+    } else if (docContent) {
+      formData.append('text', docContent);
+    }
+
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      body: formData,
     });
 
     const data = await response.json();
-    const raw = data.content.map(b => b.text || '').join('');
-    const clean = raw.replace(/```json|```/g, '').trim();
-    analysisResult = JSON.parse(clean);
+    if (!response.ok || data.error) throw new Error(data.error || 'Analysis failed');
+    analysisResult = data.result;
     showResults(analysisResult, lang);
   } catch(e) {
     analysisResult = getDemoResult(lang, isAudioTab);
@@ -1408,7 +1441,6 @@ function getDemoResult(lang, isAudio = false) {
     return {
       summary: isAudio ? "ડૉક્ટરે તાવ અને ઉધરસ માટે 5 દિવસની દવા લખી છે." : "તાવ અને ઉધરસ માટે 5 દિવસની સારવાર — આરામ અને પ્રવાહી જરૂરી.",
       diagnosis: "તમને વાઈરલ તાવ અને ઉપલા શ્વાસ-નળીનો ચેપ (URTI) છે. આ સામાન્ય બીમારી છે જે સામાન્ય રીતે 5-7 દિવસમાં સ્વસ્થ થઈ જાય છે. પૂરતો આરામ અને પ્રવાહી ખૂબ જ જરૂરી છે. ગભરાવાની જરૂર નથી.",
-      sideEffects: "Paracetamol થી પેટમાં હળવો દુ:ખાવો થઈ શકે — ખાધા પછી લો. Antibiotic થી ઝાડા થઈ શકે; દહીં ખાઓ. જો ખૂજલી, ચકામા અથવા શ્વાસ લેવામાં તકલીફ થાય તો તરત ડૉક્ટર પાસે જાઓ.",
       followUpChecklist: [
         "3 દિવસ પછી ડૉક્ટરને મળો",
         "Antibiotic નો આખો કોર્સ પૂરો કરો",
@@ -1432,7 +1464,6 @@ function getDemoResult(lang, isAudio = false) {
     return {
       summary: isAudio ? "डॉक्टर ने ताव और खांसी के लिए दवाई बताई है।" : "बुखार और खांसी के लिए 5 दिन की दवाई दी गई है।",
       diagnosis: "आपको वायरल बुखार और ऊपरी श्वसन संक्रमण है। यह एक सामान्य बीमारी है जो आमतौर पर 5-7 दिनों में ठीक हो जाती है। पर्याप्त आराम और पानी पीना जरूरी है। घबराने की कोई बात नहीं है।",
-      sideEffects: "Paracetamol से पेट में हल्का दर्द हो सकता है — इसे खाने के बाद लें। Antibiotic से दस्त हो सकते हैं; दही खाएं। अगर दाने, खुजली या सांस लेने में तकलीफ हो तो तुरंत डॉक्टर को दिखाएं।",
       followUpChecklist: [
         "3 दिन बाद डॉक्टर से मिलें",
         "पूरा एंटीबायोटिक कोर्स लें",
@@ -1456,7 +1487,6 @@ function getDemoResult(lang, isAudio = false) {
   return {
     summary: isAudio ? "Doctor advised 5-day course for fever and cough — rest and fluids recommended." : "5-day course prescribed for fever and cough with rest advised.",
     diagnosis: "You have a viral fever with an upper respiratory infection (URTI). This is a common illness that typically resolves in 5-7 days with proper rest and hydration. No serious complications are expected.",
-    sideEffects: "Paracetamol may cause mild stomach upset — take with food. The antibiotic may cause loose stools; eat yogurt to help. Stop immediately and see your doctor if you notice a rash or breathing difficulty.",
     followUpChecklist: [
       "Follow up with doctor in 3 days",
       "Complete the full antibiotic course",
@@ -1481,7 +1511,6 @@ function showResults(r, lang) {
   applyResultLabels(lang || selectedLang);
   document.getElementById('summary-text').textContent = r.summary || '—';
   document.getElementById('diagnosis-text').textContent = r.diagnosis || '—';
-  document.getElementById('side-effects-text').textContent = r.sideEffects || '—';
 
   const cl = document.getElementById('checklist');
   cl.innerHTML = '';
@@ -1621,11 +1650,35 @@ function suSubmit() {
   if(!tc) { suErr('Please agree to the Terms of Service to continue.'); return; }
   const btn = document.getElementById('sb');
   const txt = document.getElementById('st');
-  const sp = document.getElementById('sp');
+  const sp  = document.getElementById('sp');
   btn.disabled = true;
   txt.style.display = 'none';
   sp.style.display = 'block';
   setTimeout(() => {
+    // Save user to localStorage
+    const userData = {
+      name:     document.getElementById('f1').value.trim(),
+      email:    document.getElementById('f2').value.trim(),
+      phone:    document.getElementById('f3').value.trim(),
+      age:      document.getElementById('su-age').value,
+      language: document.getElementById('su-lng').value,
+      password: btoa(document.getElementById('pw1').value), // base64 only — not real encryption
+      joinedAt: new Date().toLocaleDateString('en-IN')
+    };
+    localStorage.setItem('mb_user', JSON.stringify(userData));
+    // Seed family with real name
+    const fSaved = localStorage.getItem('mb_family');
+    let fd = null;
+    if (fSaved) { try { fd = JSON.parse(fSaved); } catch(e) {} }
+    if (fd && fd.members && fd.members.length > 0) {
+      const self = fd.members.find(m => m.relation === 'Self' || m.name === 'You');
+      if (self) {
+        self.name = userData.name;
+        self.age  = userData.age;
+        localStorage.setItem('mb_family', JSON.stringify(fd));
+      }
+    }
+    // Show success screen
     document.getElementById('pg3').classList.remove('on');
     document.getElementById('sc').classList.add('show');
     document.getElementById('ll').style.display = 'none';
@@ -1872,35 +1925,28 @@ window.addEventListener('DOMContentLoaded', () => { initFamily(); });
 /* ===== DOWNLOAD REPORT ===== */
 function downloadReport() {
   if (!analysisResult) return;
-  const lang = selectedLang;
-  // Resolve user name: active family member → signup form → 'Patient'
+
+  const lang   = selectedLang;
   const member = (typeof getActiveMember === 'function') ? getActiveMember() : null;
   const signupName = (document.getElementById('f1') ? document.getElementById('f1').value.trim() : '') || '';
-  const rawName = (member && member.name && member.name !== 'You') ? member.name : (signupName || (member ? member.name : ''));
+  const rawName    = (member && member.name && member.name !== 'You') ? member.name : (signupName || (member ? member.name : ''));
   const memberName = rawName || 'Patient';
-  const memberAge  = (member && member.age) ? member.age : (document.getElementById('patient-age') ? document.getElementById('patient-age').value : '');
+  const memberAge      = (member && member.age) ? member.age : (document.getElementById('patient-age') ? document.getElementById('patient-age').value : '');
   const memberRelation = (member && member.relation && member.relation !== 'Self') ? member.relation : '';
-  const date = new Date().toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'});
+  const date     = new Date().toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'});
+  const langLabel = lang === 'Hindi' ? '🇮🇳 हिंदी' : lang === 'Gujarati' ? '🏵️ ગુજરાતી' : '🇬🇧 English';
 
-  // Build side effects HTML — always from array
-  const seHTML = analysisResult.sideEffects || '—';
-
-  // Build meds table rows
   const medRows = (analysisResult.medications || []).map(m =>
     `<tr><td><strong>${m.name}</strong></td><td>${m.dosage}</td><td>${m.timing}</td><td>${m.duration}</td><td>${m.instructions}</td></tr>`
   ).join('');
 
-  // Build checklist
   const checkItems = (analysisResult.followUpChecklist || []).map(item =>
     `<li style="padding:5px 0;">☐ ${item}</li>`
   ).join('');
 
-  // Build jargon table
   const jargonRows = (analysisResult.jargon || []).map(j =>
     `<tr><td><strong>${j.term}</strong></td><td style="color:#5a8a5a;">→</td><td>${j.plain}</td></tr>`
   ).join('');
-
-  const langLabel = lang === 'Hindi' ? '🇮🇳 हिंदी' : lang === 'Gujarati' ? '🏵️ ગુજરાતી' : '🇬🇧 English';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1913,8 +1959,6 @@ function downloadReport() {
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans',sans-serif;background:#f5f9f4;color:#2a3d2a;padding:0;}
   .page{max-width:780px;margin:0 auto;background:white;min-height:100vh;}
-
-  /* Header */
   .report-header{background:linear-gradient(135deg,#2d5a2d 0%,#3a7a3a 100%);color:white;padding:2rem 2.5rem 1.5rem;}
   .report-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
   .report-logo{display:flex;align-items:center;gap:10px;}
@@ -1925,47 +1969,33 @@ function downloadReport() {
   .report-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-bottom:.3rem;}
   .report-meta{font-size:13px;opacity:.85;display:flex;gap:16px;flex-wrap:wrap;}
   .report-meta span{display:flex;align-items:center;gap:5px;}
-
-  /* Body */
   .report-body{padding:1.5rem 2.5rem 2rem;}
   .section{margin-bottom:1.5rem;page-break-inside:avoid;}
   .section-title{font-size:11px;font-weight:700;color:#5a8a5a;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:2px solid #e8f0e8;display:flex;align-items:center;gap:7px;}
   .section-body{font-size:13.5px;color:#2d4a2d;line-height:1.7;background:#f8fcf7;border-radius:10px;padding:.9rem 1rem;border:1px solid #e0ece0;}
-
-  /* Side effects bullet list */
-
-  /* Checklist */
   .check-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;}
   .check-list li{font-size:13px;color:#2d4a2d;padding:5px 0;border-bottom:1px solid #f0f7f0;}
   .check-list li:last-child{border-bottom:none;}
-
-  /* Tables */
   table{width:100%;border-collapse:collapse;font-size:12.5px;}
   th{background:#f0f7f0;color:#2d5a2d;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;border-bottom:2px solid #d0e8d0;}
   td{padding:8px 10px;border-bottom:1px solid #f0f7f0;color:#2d4a2d;vertical-align:top;}
   tr:last-child td{border-bottom:none;}
   tr:hover td{background:#fafcfa;}
   .table-wrap{border-radius:10px;overflow:hidden;border:1px solid #d8ead8;}
-
-  /* Summary bar */
   .summary-bar{background:linear-gradient(135deg,#eaf4ea,#dff0df);border:1.5px solid #c0dfc0;border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.5rem;display:flex;gap:10px;align-items:flex-start;}
   .summary-bar-icon{font-size:1.3rem;flex-shrink:0;}
   .summary-bar-text{font-size:13.5px;font-weight:500;color:#2d5a2d;line-height:1.55;}
-
-  /* Footer */
+  .info-tiles{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.5rem;}
+  .info-tile{flex:1;min-width:120px;background:#f0f7f0;border:1px solid #d0e8d0;border-radius:10px;padding:.8rem 1rem;}
+  .info-tile-label{font-size:10px;font-weight:700;color:#5a8a5a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  .info-tile-value{font-size:15px;font-weight:700;color:#2d5a2d;}
   .report-footer{background:#f0f7f0;border-top:1px solid #d8ead8;padding:1rem 2.5rem;font-size:11.5px;color:#6a8a6a;line-height:1.6;}
   .disclaimer-box{background:#fff8e0;border:1px solid #e8d88a;border-radius:8px;padding:.7rem 1rem;font-size:12px;color:#5a4a10;margin-bottom:1rem;}
-
-  @media print{
-    body{background:white;}
-    .page{box-shadow:none;}
-    .section{page-break-inside:avoid;}
-  }
+  @media print{body{background:white;}.page{box-shadow:none;}.section{page-break-inside:avoid;}}
 </style>
 </head>
 <body>
 <div class="page">
-
   <div class="report-header">
     <div class="report-header-top">
       <div class="report-logo">
@@ -1992,29 +2022,22 @@ function downloadReport() {
       <span class="summary-bar-text">${analysisResult.summary || '—'}</span>
     </div>
 
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.5rem;">
-      <div style="flex:1;min-width:150px;background:#f0f7f0;border:1px solid #d0e8d0;border-radius:10px;padding:.8rem 1rem;">
-        <div style="font-size:10px;font-weight:700;color:#5a8a5a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Patient Name</div>
-        <div style="font-size:15px;font-weight:700;color:#2d5a2d;">${memberName}</div>
+    <div class="info-tiles">
+      <div class="info-tile">
+        <div class="info-tile-label">Patient Name</div>
+        <div class="info-tile-value">${memberName}</div>
       </div>
-      ${memberAge ? '<div style="flex:1;min-width:100px;background:#f0f7f0;border:1px solid #d0e8d0;border-radius:10px;padding:.8rem 1rem;"><div style=\"font-size:10px;font-weight:700;color:#5a8a5a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;\">Age</div><div style=\"font-size:15px;font-weight:700;color:#2d5a2d;\">' + memberAge + ' yrs</div></div>' : ''}
-      ${memberRelation ? '<div style="flex:1;min-width:120px;background:#f0f7f0;border:1px solid #d0e8d0;border-radius:10px;padding:.8rem 1rem;"><div style=\"font-size:10px;font-weight:700;color:#5a8a5a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;\">Relation</div><div style=\"font-size:15px;font-weight:700;color:#2d5a2d;\">' + memberRelation + '</div></div>' : ''}
-      <div style="flex:1;min-width:120px;background:#f0f7f0;border:1px solid #d0e8d0;border-radius:10px;padding:.8rem 1rem;">
-        <div style="font-size:10px;font-weight:700;color:#5a8a5a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Report Date</div>
-        <div style="font-size:15px;font-weight:700;color:#2d5a2d;">${date}</div>
+      ${memberAge ? `<div class="info-tile"><div class="info-tile-label">Age</div><div class="info-tile-value">${memberAge} yrs</div></div>` : ''}
+      ${memberRelation ? `<div class="info-tile"><div class="info-tile-label">Relation</div><div class="info-tile-value">${memberRelation}</div></div>` : ''}
+      <div class="info-tile">
+        <div class="info-tile-label">Report Date</div>
+        <div class="info-tile-value">${date}</div>
       </div>
     </div>
 
     <div class="section">
       <div class="section-title">🏥 What you have — Diagnosis</div>
       <div class="section-body">${analysisResult.diagnosis || '—'}</div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">⚠️ Side Effects &amp; Warnings</div>
-      <div class="section-body">
-        <p style="font-size:13.5px;color:#2d4a2d;line-height:1.7;">${seHTML}</p>
-      </div>
     </div>
 
     <div class="section">
@@ -2054,32 +2077,31 @@ function downloadReport() {
     Generated by <strong>MedBuddy</strong> — AI Medical Document Simplifier &nbsp;·&nbsp; Made for India 🇮🇳 &nbsp;·&nbsp; ${date}<br>
     This report is a simplified version of your medical document. It is not a substitute for professional medical advice.
   </div>
-
 </div>
 </body>
 </html>`;
 
-  // Trigger download
   const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'MedBuddy_Report_' + memberName.replace(/\s+/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.html';
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'MedBuddy_Report_' + memberName.replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.html';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  // Brief feedback on button
   const btn = document.getElementById('btn-download');
   const lbl = document.getElementById('lbl-download');
   if (btn && lbl) {
     btn.disabled = true;
     lbl.textContent = '✓ Downloaded!';
-    setTimeout(() => { btn.disabled = false; lbl.textContent = (UI_STRINGS[selectedLang]?.download) || '⬇️ Download Report'; }, 2500);
+    setTimeout(() => {
+      btn.disabled = false;
+      lbl.textContent = (UI_STRINGS[selectedLang]?.download) || '⬇️ Download Report';
+    }, 2500);
   }
 }
-
 
 /* ===== WHATSAPP SHARE ===== */
 function shareOnWhatsApp() {
@@ -2117,8 +2139,6 @@ ${analysisResult.summary || '—'}
 🏥 *Diagnosis*
 ${analysisResult.diagnosis || '—'}
 
-⚠️ *Side Effects & Warnings*
-${analysisResult.sideEffects || '—'}
 
 💊 *Medications*
 ${meds}
@@ -2148,6 +2168,78 @@ ${checklist}
     }, 2500);
   }
 }
+
+
+/* ===== SIGN IN / AUTH BOOT ===== */
+
+function showSignIn() {
+  showView('signin');
+  document.getElementById('si-email').value = '';
+  document.getElementById('si-pw').value = '';
+  document.getElementById('si-err').classList.remove('show');
+}
+
+function siErr(m) {
+  document.getElementById('si-err-txt').textContent = m;
+  const b = document.getElementById('si-err');
+  b.classList.add('show');
+  setTimeout(() => b.classList.remove('show'), 3500);
+}
+
+function signIn() {
+  const email = document.getElementById('si-email').value.trim();
+  const pw    = document.getElementById('si-pw').value;
+  if (!email) { siErr('Please enter your email address.'); return; }
+  if (!pw)    { siErr('Please enter your password.'); return; }
+
+  const saved = localStorage.getItem('mb_user');
+  if (!saved) { siErr('No account found. Please sign up first.'); return; }
+
+  let user;
+  try { user = JSON.parse(saved); } catch(e) { siErr('Error reading account. Please sign up again.'); return; }
+
+  if (user.email.toLowerCase() !== email.toLowerCase()) {
+    siErr('Email not found. Please check or sign up.'); return;
+  }
+  if (atob(user.password) !== pw) {
+    siErr('Incorrect password. Please try again.'); return;
+  }
+
+  // Success — go to main app
+  showView('main');
+  // Update header with user name
+  updateHeaderForUser(user.name);
+}
+
+function updateHeaderForUser(name) {
+  const btn = document.getElementById('header-btn');
+  if (btn && name) {
+    btn.textContent = name.split(' ')[0];
+    btn.onclick = () => showView('family');
+  }
+  // Also update family active member label
+  const lbl = document.getElementById('active-member-label');
+  if (lbl && name) lbl.textContent = name.split(' ')[0];
+}
+
+/* Boot: runs on page load — show signup or main based on saved session */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('mb_user');
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      if (user && user.email) {
+        // Returning user — go straight to main
+        showView('main');
+        updateHeaderForUser(user.name);
+        initFamily();
+        return;
+      }
+    } catch(e) {}
+  }
+  // New user — stay on signup (already active)
+  showView('signup');
+});
 
 </script>
 
