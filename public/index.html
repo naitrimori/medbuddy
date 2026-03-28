@@ -1423,8 +1423,8 @@ Return EXACTLY this JSON structure:
     analysisResult = data.result;
     showResults(analysisResult, lang);
   } catch(e) {
-    analysisResult = getDemoResult(lang, isAudioTab);
-    showResults(analysisResult, lang);
+    console.error('analyzeDoc error:', e);
+    mainErr('Analysis failed: ' + (e.message || 'Unknown error. Please try again.'));
   } finally {
     clearInterval(loadingInterval);
     loadingStepIds.forEach(id => document.getElementById(id).className = 'done');
@@ -2237,8 +2237,9 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     } catch(e) {}
   }
-  // New user — stay on signup (already active)
-  showView('signup');
+  // New user — go straight to main app, no forced signup
+  showView('main');
+  initFamily();
 });
 
 </script>
@@ -2443,6 +2444,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <!-- TOAST -->
 <div class="notification-toast" id="toast"></div>
-<script src="medbuddy-ai-fix.js"></script>
+<!-- medbuddy-ai-fix.js removed: API calls now handled by server.js backend -->
 </body>
 </html>
