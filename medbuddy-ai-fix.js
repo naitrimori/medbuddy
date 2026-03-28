@@ -17,7 +17,7 @@
  *   "deepseek/deepseek-chat:free"
  */
 
-const OPENROUTER_API_KEY = "YOUR_OPENROUTER_API_KEY_HERE"; // 🔑 Replace this!
+const OPENROUTER_API_KEY = "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"; // 🔑 Replace this!
 const MODEL = "meta-llama/llama-3.3-70b-instruct:free";    // 🤖 Change model here if you want
 
 // ─────────────────────────────────────────────
