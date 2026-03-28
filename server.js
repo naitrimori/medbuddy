@@ -30,10 +30,7 @@ const ALLOWED_AUDIO  = ['audio/mpeg','audio/mp3','audio/wav','audio/x-wav',
                         'audio/webm','video/webm','audio/mp4'];
 
 if (!OPENROUTER_KEY) {
-  console.error('[MedBuddy] ⚠️  OPENROUTER_API_KEY is not set.');
-  console.error('[MedBuddy]    Get a free key at https://openrouter.ai/keys');
-  console.error('[MedBuddy]    Add it in Render → Environment → OPENROUTER_API_KEY');
-  process.exit(1);
+  console.warn('[MedBuddy] ⚠️  OPENROUTER_API_KEY not set — /api/analyze will fail until you add it in Render Environment.');
 }
 
 // ─── App ─────────────────────────────────────────────────────────────────────
@@ -127,6 +124,9 @@ app.post('/api/analyze', upload.fields([
   { name: 'file',      maxCount: 1 },
   { name: 'audioFile', maxCount: 1 },
 ]), async (req, res) => {
+  if (!OPENROUTER_KEY) {
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY is not set on the server. Add it in Render → Environment tab.' });
+  }
   try {
     const lang      = req.body.lang || 'English';
     const age       = req.body.age  || '';
